@@ -50,114 +50,139 @@ function drawLine(startx, starty, endx, endy, color, width) {
   }
 }
 
-
 // Jen's stuff
 
+//set paper size and plot size
 var paperwidth = 800;
 var paperheight = 240;
+
+//define paper
 var paper = Raphael(document.getElementById('paperContainer'), paperwidth, paperheight);
 
+//draw plot box with paper.rect
+drawPlotBox(20,20,paperwidth-40, paperheight-40);
 drawPlotBox(0,0,paperwidth, paperheight);
-
 function drawPlotBox(x,y,width,height) {
 	paper.rect(x,y,width,height);
 }
-
-// drawPlotBox('#00f',4);
-
-//function drawPlotBox(color, width){
-//	drawLine (0,0,0,paperheight, color, width);
-//	drawLine (0,paperheight,paperwidth,paperheight, color, width);
-//	drawLine (paperwidth,paperheight,paperwidth,0, color, width);
-//	drawLine (paperwidth,0,0,0, color, width);
-//}
-function processData() {
-		var startingTimeMS = points[0].time.getTime();
-		var endTimeMS = points[points.length-1].time.getTime();
-		var timeRangeMS = endTimeMS - startingTimeMS;
-		var endDistanceM = points[points.length-1].distance; 
-    var minElevation = 1000000000;
-    var maxElevation = 0;
-		for (var k=0; k<points.length; k++) {
-			if (points[k].altitude > maxElevation) {
-				maxElevation = points[k].altitude;
-			}
-      if (points[k].altitude <minElevation) {
-        minElevation = points[k].altitude;
-      }
-		}
-    console.log("minElevation: ", minElevation);
-    console.log("maxElevation: ", maxElevation);
-	function plotTimeDistance () {
-		var data =[];
-		for (var j=0; j<points.length; j++) {
-			data[j]=[];
-			var normTime = (points[j].time.getTime()-startingTimeMS)*paperwidth/timeRangeMS;
-			var normDistance = (points[j].distance*paperheight/endDistanceM);	
-			data[j][0] = normTime;
-			data[j][1] = normDistance;
-		}
-		for (var i=0; i<data.length; i++) {
-			if (i+1<data.length) {
-				var startx = data[i][0];
-				var starty = paperheight-data[i][1];
-				var nextx = data[i+1][0];
-				var nexty = paperheight-data[i+1][1];
-				drawLine(startx, starty, nextx, nexty, '#f00', 5);
-			}
-		}
-
-	}
-
-	function plotTimeElevation () {
-		var data = [];
-
-		for (var j=0; j<points.length; j++) {
-			data[j]=[];
-			var normTime = (points[j].time.getTime()-startingTimeMS)*paperwidth/timeRangeMS;
-			var normElevation = ((points[j].altitude*paperheight-minElevation)/maxElevation);	
-			data[j][0] = normTime;
-			data[j][1] = normElevation;
-		}
-		for (var i=0; i<data.length; i++) {
-			if (i+1<data.length) {
-				var startx = data[i][0];
-				var starty = paperheight-data[i][1];
-				var nextx = data[i+1][0];
-				var nexty = paperheight-data[i+1][1];
-
-				drawLine(startx, starty, nextx, nexty, '#ddd', 4);
-			
-			}
-		}
-
-	}
-
-	function drawAxes (){
-
-//		drawPlotBox('#000',4);
-		var tickHeight = 10;
-		var labelPadding = 5;
-		for (var i=0; i<10; i++) {
-			var xTick = i * paperwidth / 10;
-			drawLine(xTick,paperheight,xTick,paperheight-tickHeight);
-			paper.text(xTick, paperheight-tickHeight-labelPadding, parseInt((i*timeRangeMS/10)/(60000)));
-		}
-		for (var j=1; j<10; j++) {
-			var yTick = paperheight - (j * paperheight / 10);
-			drawLine(0, yTick,tickHeight,yTick);
-			paper.text(tickHeight+labelPadding+20, yTick, parseInt((j*endDistanceM/10)));
-			drawLine(paperwidth-tickHeight, yTick, paperwidth, yTick);
-			paper.text(paperwidth-tickHeight-labelPadding-20, yTick, parseInt((j*maxElevation/10)));
-		}
-		paper.text(paperwidth/2,paperheight-40,'Time(minutes)'); 
-		paper.text(70, paperheight/2,'Distance(meters)').transform("r90"); 
-		paper.text(paperwidth-70, paperheight/2,'Altitude(meters)').transform("r-90"); 
-	}
-
-	plotTimeElevation();
-	plotTimeDistance();
-
-	drawAxes();
-
+// plot a path using an array of coordinates (data) and drawLine(), define color and width
+function plotPath (data, color, width) {
+  for (var i=0; i<data.length; i++) {
+    if (1+i<data.length) {
+      var startx = data[i][0];
+      var starty = paperheight-data[i][1];
+      var nextx = data[i+1][0];
+      var nexty = paperheight-data[i+1][1];
+      drawLine(startx, starty, nextx, nexty, color, width);
+    }
+  }
 }
+
+//process data
+function processData(){
+
+  //define unprocessed vars from gpx
+	var startTimeMS = points[0].time.getTime();
+	var endTimeMS = points[points.length-1].time.getTime();
+	var endDistanceM = points[points.length-1].distance;
+
+  // derivative vars from gpx
+	var timeRangeMS = endTimeMS - startTimeMS;
+
+  //calculate max and min HR, elevation
+	var minHR = 1000;
+	var maxHR = 0;
+  var minElevation = 1000000000;
+	var maxElevation = 0;
+	for (var k=0; k<points.length; k++) {
+    if (points[k].altitude<minElevation) {
+      minElevation = points[k].altitude;
+    }
+    if (points[k].altitude>maxElevation) {
+			maxElevation = points[k].altitude;
+		}
+		if (parseInt(points[k].sensor)>maxHR) {
+			maxHR = parseInt(points[k].sensor);
+		}
+		if (parseInt(points[k].sensor)<minHR) {
+			minHR = parseInt(points[k].sensor);
+		}
+	}
+  var rangeHR = maxHR - minHR;
+  var rangeElevation = maxElevation - minElevation;
+  
+  // function to generate Time vs. Distance data array and plot it
+  function plotTimeDistance(){
+    var data=[];
+    for (var i=0; i<points.length; i++) {
+      data[i]=[];
+      var normTime = (points[i].time.getTime()-startTimeMS) * paperwidth / timeRangeMS;
+      var normDistance = (points[i].distance * paperheight / endDistanceM);
+      data[i][0] = normTime;
+      data[i][1] = normDistance;
+    }
+    //plot it!
+    plotPath(data,'#00f',2);
+  }
+	plotTimeDistance();
+  drawAxes(parseInt(timeRangeMS/60000), 0, parseInt(endDistanceM/1609), 0);
+
+  // function to generate Time vs. Elevation data array and plot it
+  function plotTimeElevation(){
+    var data=[];
+    for (var i=0; i<points.length; i++) {
+      data[i]=[];
+      var normTime = (points[i].time.getTime()-startTimeMS) * paperwidth / timeRangeMS;
+      var normElevation = ((points[i].altitude * paperheight-minElevation) / maxElevation);
+      data[i][0] = normTime;
+      data[i][1] = normElevation;
+    }
+    plotPath(data, '#ddd',10);
+    //plot it!
+  }
+//  plotTimeElevation();
+
+  //function to generate Time vs. HR data array and plot it
+  function plotTimeHR(){
+    var data=[];
+    for (var i=0; i<points.length; i++) {
+      data[i]=[];
+      var normTime = (points[i].time.getTime()-startTimeMS) * paperwidth / timeRangeMS;
+      var normHR = (parseInt(points[i].sensor)-minHR) * paperheight / rangeHR;
+      data[i][0] = normTime;
+      data[i][1] = normHR;
+    }
+    plotPath(data, '#f00',2);
+    //plot it!
+  }
+//  plotTimeHR();
+
+  //function to generate Distance vs. Elevation data array and plot it
+  function plotDistanceElevation(){
+    var data=[];
+    for (var i=0; i<points.length; i++) {
+      data[i]=[];
+      var normDistance = (points[i].distance * paperwidth / endDistanceM);
+      var normElevation = (points[i].altitude * paperheight / maxElevation);
+      data[i][0] = normDistance;
+      data[i][1] = normElevation;
+    }
+    plotPath(data, '#0f0', 2);
+  }
+//  plotDistanceElevation();
+}
+
+// function to draw axes
+function drawAxes(rangeX, minX, rangeY, minY){
+  var tickHeight = 10;
+  var labelPadding = 5;
+  for (var i=0; i<10; i++) {
+    var xTick = i*paperwidth / 10;
+    drawLine(xTick, paperheight, xTick, paperheight-tickHeight);
+    paper.text(xTick, paperheight-tickHeight-labelPadding, minX+i*rangeX/10);
+    var yTick = paperheight-i*paperheight/10;
+    drawLine(0,yTick,tickHeight, yTick);
+    paper.text(tickHeight+labelPadding, yTick, minY+i*rangeY/10);
+  }
+}    
+

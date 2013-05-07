@@ -50,9 +50,9 @@ function drawLine(startx, starty, endx, endy, color, width) {
   }
 }
 
-// jen's stuff
+// Jen's stuff
 
-//set paper size
+//set paper size and plot size
 var paperwidth = 800;
 var paperheight = 240;
 
@@ -60,6 +60,7 @@ var paperheight = 240;
 var paper = Raphael(document.getElementById('paperContainer'), paperwidth, paperheight);
 
 //draw plot box with paper.rect
+drawPlotBox(20,20,paperwidth-40, paperheight-40);
 drawPlotBox(0,0,paperwidth, paperheight);
 function drawPlotBox(x,y,width,height) {
 	paper.rect(x,y,width,height);
@@ -80,16 +81,13 @@ function plotPath (data, color, width) {
 //process data
 function processData(){
 
-  //define unprocess vars from gpx
+  //define unprocessed vars from gpx
 	var startTimeMS = points[0].time.getTime();
 	var endTimeMS = points[points.length-1].time.getTime();
 	var endDistanceM = points[points.length-1].distance;
 
   // derivative vars from gpx
-  //	var startTimeMin = startTimeMS/60000;
-  //	var endTimeMin = endTimeMS/60000;
 	var timeRangeMS = endTimeMS - startTimeMS;
-  //	var endDistanceMi = endDistanceM/1609.34;
 
   //calculate max and min HR, elevation
 	var minHR = 1000;
@@ -112,7 +110,8 @@ function processData(){
 	}
   var rangeHR = maxHR - minHR;
   var rangeElevation = maxElevation - minElevation;
-  // function to plot Time vs. Distance
+  
+  // function to generate Time vs. Distance data array and plot it
   function plotTimeDistance(){
     var data=[];
     for (var i=0; i<points.length; i++) {
@@ -122,11 +121,13 @@ function processData(){
       data[i][0] = normTime;
       data[i][1] = normDistance;
     }
+    //plot it!
     plotPath(data,'#00f',2);
   }
 	plotTimeDistance();
+  drawAxes(parseInt(timeRangeMS/60000), 0, parseInt(endDistanceM/1609), 0);
 
-  // function to plot Time vs. Elevation
+  // function to generate Time vs. Elevation data array and plot it
   function plotTimeElevation(){
     var data=[];
     for (var i=0; i<points.length; i++) {
@@ -137,10 +138,11 @@ function processData(){
       data[i][1] = normElevation;
     }
     plotPath(data, '#ddd',10);
+    //plot it!
   }
-  plotTimeElevation();
+//  plotTimeElevation();
 
-  //function to plot Time vs. HR
+  //function to generate Time vs. HR data array and plot it
   function plotTimeHR(){
     var data=[];
     for (var i=0; i<points.length; i++) {
@@ -151,10 +153,11 @@ function processData(){
       data[i][1] = normHR;
     }
     plotPath(data, '#f00',2);
+    //plot it!
   }
-  plotTimeHR();
+//  plotTimeHR();
 
-  //function to plot Distance vs. Elevation
+  //function to generate Distance vs. Elevation data array and plot it
   function plotDistanceElevation(){
     var data=[];
     for (var i=0; i<points.length; i++) {
@@ -166,7 +169,7 @@ function processData(){
     }
     plotPath(data, '#0f0', 2);
   }
-  // plotDistanceElevation();
+//  plotDistanceElevation();
 }
 
 // function to draw axes
@@ -176,9 +179,10 @@ function drawAxes(rangeX, minX, rangeY, minY){
   for (var i=0; i<10; i++) {
     var xTick = i*paperwidth / 10;
     drawLine(xTick, paperheight, xTick, paperheight-tickHeight);
-    paper.text(xTick, paperheight-tickHeight-labelPadding, i*maxX
-    
+    paper.text(xTick, paperheight-tickHeight-labelPadding, minX+i*rangeX/10);
+    var yTick = paperheight-i*paperheight/10;
+    drawLine(0,yTick,tickHeight, yTick);
+    paper.text(tickHeight+labelPadding, yTick, minY+i*rangeY/10);
+  }
+}    
 
-// var xAxis = document.getElementById("x-axis").options[x-axis.selectedIndex].text;
-// var yAxis = document.getElementById("y-axis");
-// console.log(xAxis);
